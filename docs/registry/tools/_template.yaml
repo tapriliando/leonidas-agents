@@ -1,0 +1,63 @@
+# ============================================================
+# TOOL REGISTRY TEMPLATE
+# Copy this file, rename it to mcp.<tool_name>.yaml, fill it in.
+# Fields marked [YOU] = fill this in.
+# Fields marked [DEV] = leave blank, the developer fills these.
+# ============================================================
+
+# [YOU] Unique ID. Must start with mcp.
+# Example: mcp.linkedin_search | mcp.whatsapp_send | mcp.crop_data_api
+tool_id:
+
+# [YOU] Human-readable name.
+# Example: "LinkedIn Search"
+name:
+
+# [YOU] Leave as 1.0.0 for new tools.
+version: "1.0.0"
+
+# [YOU] What company/service provides this?
+# Example: google | openai | sendgrid | rapidapi | custom
+provider:
+
+# [YOU] One sentence: what does this tool do and what does it return?
+# Example: "Searches LinkedIn posts and profiles by keyword and returns titles and URLs."
+purpose: >
+
+# [YOU] What information must the agent send to use this tool?
+# Example:
+#   - query: the search keyword or phrase (required)
+#   - max_results: how many results to return (optional, default 10)
+input_fields:
+  - name:
+    required: true / false
+    description: >
+
+# [YOU] What does the tool return?
+# Example:
+#   - results: list of posts with title, url, and snippet
+output_fields:
+  - name:
+    description: >
+
+# [YOU] Which agents use this tool?
+# List agent_id values from docs/registry/agents/*.yaml
+used_by_agents:
+  -
+
+# ---- DEVELOPER FILLS BELOW (leave blank when submitting) ------------------
+
+# [DEV] Internal endpoint on the MCP server
+endpoint: /tools/<category>/<name>
+
+# [DEV] Environment variable that holds the API key (never put the key itself here)
+auth:
+  method: api_key
+  env_var: <ENV_VAR_NAME>
+
+# [DEV] Rate limits
+rate_limits:
+  requests_per_minute: 60
+
+# [DEV] Implementation file
+handler_file: mcp-server/tools/<tool_name>.py

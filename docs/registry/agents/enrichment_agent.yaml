@@ -1,0 +1,34 @@
+agent_id: enrichment_agent
+type: node
+department: distribution
+file: backend/app/agents/distribution/enrichment_agent.py
+
+description: >
+  Generic item enrichment via web search context. For each item in workflow_data["items"],
+  queries mcp.web_search to obtain a descriptive snippet and attaches it as item["context"].
+  Writes results to workflow_data["enriched_items"]. Contains zero domain knowledge —
+  operates on any list of items regardless of what they represent.
+
+reads_from_state:
+  - artifacts.workflow_data.items          # list of item dicts from scraper_agent or fetch_node
+  - workflow_type                          # used for logging only
+  - constraints.filters.enrich_field       # item field to use in the search query (default "name")
+  - constraints.limit                      # max items to enrich
+  - run_id                                 # attached to MCP calls for tracing
+
+writes_to_state:
+  - artifacts.workflow_data.enriched_items # items with "context" field added (context may be null)
+  - errors                                 # appended per-item on MCP failure (non-fatal)
+
+tools_used:
+  - mcp.web_search
+
+capabilities:
+  - Per-item web enrichment with configurable query field
+  - Partial failure tolerance — individual search failures do not abort the node
+  - Respects constraints.limit for cost control
+
+is_reusable: true
+used_in_workflows:
+  - lead_gen
+  - talent_pipeline  # future example

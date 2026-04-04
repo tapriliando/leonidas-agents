@@ -1,0 +1,44 @@
+workflow_type: content_generation
+name: "Content generation (HeyGen video)"
+version: "1.0.0"
+department: content
+
+purpose: >
+  Turns a text brief into a HeyGen Video Agent job (presenter-style video).
+  Reads workflow_data.content_prompt when chained after research; otherwise uses
+  summary.overview or the raw user_query.
+
+steps_description: >
+  1. Resolve the video prompt from state (content_prompt → summary → user_query)
+  2. Call mcp.heygen_video_agent_generate via MCP
+  3. Store the API response under workflow_data.content_generation
+  4. Render report + persist
+
+example_queries:
+  - "Create a 30 second presenter video explaining our Q2 roadmap"
+  - "Generate a HeyGen video: a friendly presenter introduces our mobile app"
+  - After research in a multi-step plan: uses research output as the brief automatically
+
+agents_used:
+  - heygen_video_agent
+  - report_node
+  - persist_node
+
+tools_used:
+  - mcp.heygen_video_agent_generate
+
+graph_file: backend/app/graph/workflows/content_generation_graph.py
+
+nodes:
+  - name: heygen
+    node_file: backend/app/agents/content_generation/heygen_video_agent.py
+  - name: report
+    node_file: backend/app/agents/system/report_node.py
+  - name: persist
+    node_file: backend/app/agents/system/persist_node.py
+
+routing:
+  - after: heygen
+    edge: report
+  - after: report
+    edge: persist

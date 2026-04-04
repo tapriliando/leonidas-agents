@@ -1,0 +1,37 @@
+Metadata-Version: 2.4
+Name: ai-ibridge
+Version: 0.1.0
+Summary: AI I-Bridge — multi-agent LangGraph + MCP (Phase 0 scaffold)
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: langgraph>=0.2.0
+Requires-Dist: langchain-core>=0.3.0
+Requires-Dist: langchain-openai>=0.2.0
+Requires-Dist: pydantic>=2.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: ruff>=0.6; extra == "dev"
+Provides-Extra: api
+Requires-Dist: fastapi>=0.115; extra == "api"
+Requires-Dist: uvicorn[standard]>=0.30; extra == "api"
+Provides-Extra: mcp
+Requires-Dist: httpx>=0.27; extra == "mcp"
+
+# AI I-Bridge — project scaffold (Phase 0)
+
+This folder matches the agreed layout: `backend/`, `mcp-server/`, `docs/`, `docker-compose.yml`, `pyproject.toml`.
+
+- **Phase 1** implements `backend/app/state.py` (`AgentState`).
+- **Docs:** see `docs/` (eight markdown files).
+
+Install (from `project/`):
+
+```bash
+pip install -e ".[dev]"
+```
+
+Run tests:
+
+```bash
+pytest
+```

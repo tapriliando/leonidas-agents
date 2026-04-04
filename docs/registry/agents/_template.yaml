@@ -1,0 +1,78 @@
+# ============================================================
+# AGENT REGISTRY TEMPLATE
+# Copy this file, rename it to <your_agent_id>.yaml, fill it in.
+# Fields marked [YOU] = fill this in.
+# Fields marked [DEV] = leave blank, the developer fills these.
+# ============================================================
+
+# [YOU] Unique name for this agent. Use lowercase with underscores.
+# This must match the Python filename the developer creates.
+# Example: web_crawler_node
+agent_id:
+
+# [YOU] Human-readable label.
+# Example: "Web Crawler Agent"
+name:
+
+# [YOU] Leave as 1.0.0 for new agents.
+version: "1.0.0"
+
+# [YOU] Which team/department owns this agent?
+# Choose one: analytics | content | distribution | research | operations | shared
+department:
+
+# [YOU] Which workflows can use this agent? List their workflow_type values.
+# Use ["*"] if this agent should be available in ALL workflows.
+# Example: ["research_intelligence", "lead_gen"]
+workflow_types:
+  -
+
+# [YOU] One clear sentence: what does this agent do?
+# The planner AI reads this to decide whether to include this agent in a plan.
+# Example: "Crawls top web search results and returns page titles and summaries."
+purpose: >
+
+# [YOU] List the external tools this agent needs.
+# Check docs/registry/tools/ for available tool IDs.
+# Example:
+#   - mcp.web_search
+#   - mcp.gmaps_places_search
+tools:
+  -
+
+# [YOU] What key does this agent write inside artifacts.workflow_data?
+# This is the output the next agent reads.
+# Example:
+#   - key: web_results
+#     type: list
+#     description: Top 10 search results with title, url, and snippet
+workflow_data_writes:
+  - key:
+    type:
+    description: >
+
+# [YOU] What label does this agent return when it succeeds?
+# The next node to run in the graph is mapped to this label.
+# Example: "merge" (if the next step merges results from multiple scrapers)
+routing_keys:
+  success:
+  failure: retry
+
+# ---- DEVELOPER FILLS BELOW (leave blank when submitting) ------------------
+
+# [DEV] Which top-level state fields does this agent read?
+state_reads:
+  - artifacts
+  - constraints
+
+# [DEV] Which top-level state fields does this agent write?
+state_writes:
+  - artifacts
+
+# [DEV] Optional retry configuration
+retry:
+  max_iterations: 3
+  on_empty: retry
+
+# [DEV] Optional notes about edge cases or dependencies.
+notes: >

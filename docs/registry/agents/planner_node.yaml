@@ -1,0 +1,36 @@
+# Registry entry for planner_node — builds the execution plan from intent output.
+
+agent_id: planner_node
+name: "Planner Node"
+version: "1.0.0"
+department: shared                    # used by ALL workflows
+workflow_types:
+  - "*"                               # wildcard — this node runs for every workflow
+
+purpose: >
+  Receives the classified intent (goal, workflow_type, constraints) from intent_node
+  and builds a validated execution plan: an ordered workflow_plan list and a
+  department_sequence. The meta-orchestrator uses workflow_plan to route through
+  the correct workflow subgraphs in sequence.
+
+state_reads:
+  - user_query
+  - goal
+  - workflow_type
+  - constraints
+  - workflow_plan                     # reads the intent_node seed (multi_workflow only)
+state_writes:
+  - workflow_plan                     # validated, normalized, registry-checked
+  - department                        # first department in the sequence
+
+workflow_data_writes: []              # planner_node does not touch artifacts
+
+tools:
+  - mcp.llm_structured_output        # LLM call returning JSON (ExecutionPlan shape)
+
+notes: >
+  planner_node never touches current_workflow_index — that counter is advanced
+  exclusively by workflow_transition_node after each subgraph completes.
+  Adding a new workflow: register it in docs/registry/workflows/ (YAML only).
+  The planner automatically includes it via format_workflows_for_intent() and
+  format_agents_for_planner().

@@ -1,0 +1,138 @@
+# MCP Tool Registry
+# -----------------
+# All external API calls go through tools registered here.
+# Agents call tools by ID (mcp.<tool_id>) — they never hold API keys.
+#
+# HOW TO ADD A NEW TOOL:
+#   1. Add an entry under `tools:` below (must start with `- name:`)
+#   2. Create mcp_server/tools/<module_name>.py with async def run(params) -> ToolResult
+#   3. Store the API key in .env.mcp (never in this file)
+#
+# Field meanings:
+#   name:        tool ID agents use — e.g. "mcp.web_search"
+#   module:      Python import path for the tool handler module
+#   auth_env:    env var name holding the API key (null if no key needed)
+#   description: one-line summary shown in GET /tools
+#   status:      "active" | "stub" | "planned"
+
+version: "1"
+
+tools:
+
+  # ---- Web & Research -------------------------------------------------------
+
+  - name: mcp.web_search
+    module: mcp_server.tools.web_search
+    description: "Web search via Tavily (falls back to DuckDuckGo if no key — no key needed for basic testing)."
+    auth_env: TAVILY_API_KEY
+    status: active
+    params:
+      query:
+        type: string
+        required: true
+      max_results:
+        type: integer
+        required: false
+      search_depth:
+        type: string
+        required: false
+
+  # ---- Data & Storage -------------------------------------------------------
+
+  - name: mcp.supabase_query
+    module: mcp_server.tools.supabase_query
+    description: "CRUD and RPC operations against the Supabase (Postgres) database."
+    auth_env: SUPABASE_KEY
+    status: active
+    params:
+      operation:
+        type: string
+        required: true       # select | insert | update | delete | upsert | rpc
+      table:
+        type: string
+        required: false      # required for all except rpc
+      filters:
+        type: object
+        required: false
+      data:
+        type: object
+        required: false      # required for insert / update / upsert
+      limit:
+        type: integer
+        required: false
+      order:
+        type: object
+        required: false      # {"column": str, "ascending": bool}
+      function_name:
+        type: string
+        required: false      # required for rpc operation
+      params:
+        type: object
+        required: false      # rpc function params
+
+  # ---- Cache ----------------------------------------------------------------
+
+  - name: mcp.redis_cache_get
+    module: mcp_server.tools.redis_cache
+    description: "Get a value from the Redis cache by key."
+    auth_env: REDIS_URL
+    status: active
+    params:
+      key:
+        type: string
+        required: true
+
+  - name: mcp.redis_cache_set
+    module: mcp_server.tools.redis_cache
+    description: "Set a value in the Redis cache with optional TTL (seconds)."
+    auth_env: REDIS_URL
+    status: active
+    params:
+      key:
+        type: string
+        required: true
+      value:
+        type: string
+        required: true
+      ttl:
+        type: integer
+        required: false
+
+  # ---- Content generation -----------------------------------------------------
+
+  - name: mcp.heygen_video_agent_generate
+    module: mcp_server.tools.heygen_video_agent
+    description: "HeyGen Video Agent — generates a presenter video from a text prompt (async job on HeyGen)."
+    auth_env: HEYGEN_API_KEY
+    status: active
+    params:
+      prompt:
+        type: string
+        required: true
+
+  # ---- Maps & Location -------------------------------------------------------
+
+  - name: mcp.gmaps_places_search
+    module: mcp_server.tools.gmaps_places
+    description: "Search businesses by keyword + location using Google Maps Places API."
+    auth_env: GOOGLE_MAPS_API_KEY
+    status: active
+    params:
+      query:
+        type: string
+        required: true
+      location:
+        type: string
+        required: false
+      limit:
+        type: integer
+        required: false
+
+  # ---- Add new tools below this line ----------------------------------------
+  # Template:
+  #
+  # - name: mcp.<tool_id>
+  #   module: mcp_server.tools.<module_name>
+  #   description: "<one line>"
+  #   auth_env: <ENV_VAR_NAME>     # null if no key needed
+  #   status: active

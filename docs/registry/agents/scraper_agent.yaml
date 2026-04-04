@@ -1,0 +1,47 @@
+agent_id: scraper_agent
+type: node
+department: distribution
+file: backend/app/agents/distribution/scraper_agent.py
+
+description: >
+  Generic external source fetcher for distribution workflows. Queries a configured
+  source (Google Maps by default, or web search) and normalizes all results into a
+  common item shape written to workflow_data["items"] — same key as fetch_node,
+  so downstream enrichment and analytics nodes work unchanged for both pipeline types.
+
+reads_from_state:
+  - workflow_type                      # used as fallback search query
+  - constraints.filters.source         # "gmaps" (default) | "web"
+  - constraints.filters.query          # search term (overrides workflow_type)
+  - constraints.filters.location       # geographic scope (e.g. "Surabaya")
+  - constraints.limit                  # max results to fetch
+  - run_id                             # attached to MCP calls for tracing
+
+writes_to_state:
+  - artifacts.workflow_data.items  # normalized list: {id, name, address, phone, rating, source, raw}
+  - metrics.item_count             # integer item count
+  - iteration_count                # incremented by 1 on empty/failed result
+  - errors                         # appended on MCP failure
+
+tools_used:
+  - mcp.gmaps_places_search  # when source = "gmaps"
+  - mcp.web_search           # when source = "web"
+
+normalized_item_fields:
+  id: string           # deterministic short hash from name+index
+  name: string
+  address: string | null
+  phone: string | null
+  rating: float | null
+  source: string       # "gmaps" | "web"
+  raw: dict            # original API response, preserved for traceability
+
+capabilities:
+  - Configurable source via constraints.filters.source
+  - Automatic normalization to common item shape
+  - Retry-friendly on empty results
+
+is_reusable: true
+used_in_workflows:
+  - lead_gen
+  - talent_pipeline  # future example

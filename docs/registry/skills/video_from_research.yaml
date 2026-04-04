@@ -1,0 +1,36 @@
+# Example skill — documents how research + video chain together for product users.
+# "Skills" are registry metadata; routing still comes from intent + planner + workflow YAML.
+
+skill_id: video_from_research
+name: "Research then generate video"
+version: "1.0.0"
+category: generation
+
+purpose: >
+  User wants trending or factual research turned into a short presenter video.
+  First workflow gathers web context; second sends a synthesized brief to HeyGen.
+
+workflow_types:
+  - research_intelligence
+  - content_generation
+
+agents:
+  - research_node
+  - suggest_node
+  - heygen_video_agent
+  - report_node
+  - persist_node
+
+tools:
+  - mcp.web_search
+  - mcp.heygen_video_agent_generate
+
+output_fields:
+  artifacts.workflow_data:
+    - items: web search results
+    - summary: synthesis
+    - suggestions: optional actions
+    - content_prompt: brief seeded for video (from research_node)
+    - content_generation: HeyGen API response
+
+quality_threshold: 0.7

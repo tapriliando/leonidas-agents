@@ -1,0 +1,39 @@
+agent_id: persist_node
+type: node
+department: system
+file: backend/app/agents/system/persist_node.py
+
+description: >
+  Terminal node for every workflow. Always runs last — even when earlier nodes failed.
+  Writes run metadata to workflow_runs and optionally the structured output to
+  workflow_artifacts via mcp.supabase_query inserts.
+
+  Completely workflow-agnostic: stores workflow_type as a metadata string, never
+  branches on it. MCP insert failures are handled gracefully — the error is recorded
+  and a terminal status is returned so the graph always ends cleanly.
+
+reads_from_state:
+  - run_id
+  - workflow_type    # metadata only — stored verbatim, never branched on
+  - status           # used as starting point; overridden by final error check
+  - metrics          # item_count, quality_score stored in workflow_runs row
+  - artifacts        # workflow_data stored in workflow_artifacts row
+  - errors           # stored in workflow_runs for debugging
+  - iteration_count  # stored in workflow_runs for analytics
+
+writes_to_state:
+  - status  # "completed" if no errors, "failed" if errors present
+  - errors  # may append MCP failure messages
+
+tools_used:
+  - mcp.supabase_query (insert into workflow_runs)
+  - mcp.supabase_query (insert into workflow_artifacts)
+
+supabase_tables:
+  workflow_runs: one row per graph.invoke() call
+  workflow_artifacts: one row per run with structured workflow_data
+
+is_reusable: true
+used_in_workflows:
+  - complaint_analysis
+  - lead_gen

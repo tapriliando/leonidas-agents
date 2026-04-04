@@ -1,0 +1,42 @@
+agent_id: report_node
+type: node
+department: system
+file: backend/app/agents/system/report_node.py
+
+description: >
+  Pure-computation report formatter. Reads the standardized workflow_data keys (items,
+  summary, suggestions, enriched_items, scored_items, item_scores, analytics) and
+  renders them as a human-readable markdown document. Completely workflow-agnostic —
+  any new workflow that writes to the standard keys gets a correctly structured report
+  with zero changes to this node.
+
+  workflow_type and goal appear only in the report header as context strings.
+  The node NEVER uses `if workflow_type == "..."` dispatch.
+
+reads_from_state:
+  - workflow_type                          # appears in report header only
+  - goal                                   # appears in report header only
+  - metrics.item_count                     # header metadata
+  - metrics.quality_score                  # header metadata
+  - artifacts.workflow_data.items          # rendered as "Source Data" section
+  - artifacts.workflow_data.summary        # rendered as "Summary" section
+  - artifacts.workflow_data.suggestions    # rendered as "Recommendations" section
+  - artifacts.workflow_data.enriched_items # rendered as "Enriched Data" section
+  - artifacts.workflow_data.scored_items   # rendered as "Scored Items" section
+  - artifacts.workflow_data.item_scores    # embedded in Scored Items section
+  - artifacts.workflow_data.analytics      # rendered as "Analytics" section
+
+writes_to_state:
+  - artifacts.report  # markdown string; the ONLY node allowed to write this key
+
+tools_used: []  # pure computation — no LLM, no MCP
+
+capabilities:
+  - Generic section-by-section markdown rendering from standardized keys
+  - Graceful skip for absent sections
+  - Priority badge rendering (high/medium/low)
+
+is_reusable: true
+used_in_workflows:
+  - complaint_analysis
+  - lead_gen

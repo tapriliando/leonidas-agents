@@ -1,0 +1,74 @@
+workflow_type: lead_gen
+name: "Lead Generation Workflow"
+version: "1.0.0"
+department: distribution
+
+purpose: >
+  Fetches potential leads from Google Maps or web search, enriches each with
+  contextual information, scores and prioritizes them using an LLM, computes
+  summary analytics, and formats a report for the sales/distribution team.
+  Used to identify and rank high-potential targets for outreach.
+
+steps_description: >
+  1. Scrape leads from the configured source (Google Maps by default, or web search)
+     using query and location constraints
+  2. Enrich each lead with a web-search context snippet about the business
+  3. Score and prioritize leads (0.0–1.0) using an LLM with domain context
+  4. Compute analytics: score distribution, top-N leads, priority breakdown
+  5. Format a human-readable markdown report
+  6. Persist the run and artifacts to Supabase
+
+output_description: >
+  A ranked list of leads with scores and priorities, plus summary analytics.
+  Saved both as artifacts.report (markdown) and as a workflow_artifacts row
+  in Supabase. Top leads are highlighted in the report.
+
+example_queries:
+  - "Find the top 20 restaurants in Surabaya and score them for our wholesale distribution"
+  - "Scrape potential clinic leads in East Java and rank by fit for our medical supplies"
+  - "Generate a lead list of hardware stores in Jakarta for our sales team"
+
+agents_used:
+  - scraper_agent
+  - enrichment_agent
+  - assigner_agent
+  - analytics_agent
+  - report_node
+  - persist_node
+
+tools_used:
+  - mcp.gmaps_places_search
+  - mcp.web_search
+  - mcp.llm_structured_output
+  - mcp.supabase_query
+
+# ---- DEVELOPER ----
+nodes:
+  - name: scraper
+    node_file: backend/app/agents/distribution/scraper_agent.py
+  - name: enrichment
+    node_file: backend/app/agents/distribution/enrichment_agent.py
+  - name: assigner
+    node_file: backend/app/agents/distribution/assigner_agent.py
+  - name: analytics
+    node_file: backend/app/agents/analytics/analytics_agent.py
+  - name: report
+    node_file: backend/app/agents/system/report_node.py
+  - name: persist
+    node_file: backend/app/agents/system/persist_node.py
+
+graph_file: backend/app/graph/workflows/lead_graph.py
+
+routing:
+  - after: scraper
+    router: retry_router
+    outcomes: {continue: enrichment, retry: scraper, fail: END}
+  - after: enrichment
+    edge: assigner
+  - after: assigner
+    router: scored_items_router
+    outcomes: {pass: analytics, retry: assigner, fail: END}
+  - after: analytics
+    edge: report
+  - after: report
+    edge: persist

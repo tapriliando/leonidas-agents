@@ -1,0 +1,64 @@
+workflow_type: complaint_analysis
+name: "Complaint Analysis Workflow"
+version: "1.0.0"
+department: analytics
+
+purpose: >
+  Fetches complaint records from the database, produces a structured summary of
+  patterns and trends, and generates actionable recommendations for resolution.
+  Used by operations and customer success teams to understand and act on complaint data.
+
+steps_description: >
+  1. Fetch complaint records from Supabase (filtered by status, region, or date range)
+  2. Summarize the complaints using an LLM — identify top categories, sentiment, patterns
+  3. Generate prioritized action recommendations based on the summary
+  4. Format a human-readable markdown report
+  5. Persist the run and artifacts to Supabase for history and feedback loops
+
+output_description: >
+  A structured report containing: overview paragraph, key findings list, prioritized
+  action recommendations, and quality metrics. Saved both as artifacts.report (markdown)
+  and as a workflow_artifacts row in Supabase.
+
+example_queries:
+  - "Analyze this week's customer complaints and suggest improvements"
+  - "Summarize open complaints in East Java and tell me what to fix first"
+  - "What are the top complaint categories this month?"
+
+agents_used:
+  - fetch_node
+  - summarize_node
+  - suggest_node
+  - report_node
+  - persist_node
+
+tools_used:
+  - mcp.supabase_query
+  - mcp.llm_structured_output
+
+# ---- DEVELOPER ----
+nodes:
+  - name: fetch
+    node_file: backend/app/agents/analytics/fetch_node.py
+  - name: summarize
+    node_file: backend/app/agents/analytics/summarize_node.py
+  - name: suggest
+    node_file: backend/app/agents/analytics/suggest_node.py
+  - name: report
+    node_file: backend/app/agents/system/report_node.py
+  - name: persist
+    node_file: backend/app/agents/system/persist_node.py
+
+graph_file: backend/app/graph/workflows/complaint_graph.py
+
+routing:
+  - after: fetch
+    router: retry_router
+    outcomes: {continue: summarize, retry: fetch, fail: END}
+  - after: summarize
+    router: quality_gate_router
+    outcomes: {pass: suggest, retry: summarize, fail: END}
+  - after: suggest
+    edge: report
+  - after: report
+    edge: persist

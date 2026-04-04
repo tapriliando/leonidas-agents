@@ -1,0 +1,40 @@
+agent_id: analytics_agent
+type: node
+department: analytics
+file: backend/app/agents/analytics/analytics_agent.py
+
+description: >
+  Generic pure-computation stats node for any scored dataset. Reads scored_items
+  (or falls back to raw items), computes score distribution, top-N items, priority
+  counts, and average score. No LLM, no MCP — pure Python arithmetic.
+  Usable in any pipeline that produces a ranked/scored list.
+
+reads_from_state:
+  - artifacts.workflow_data.scored_items  # preferred source (from assigner_agent)
+  - artifacts.workflow_data.items         # fallback when no scored_items
+  - artifacts.workflow_data.item_scores   # optional score lookup dict
+  - constraints.limit                     # top-N cutoff (default 10)
+
+writes_to_state:
+  - artifacts.workflow_data.analytics  # {score_distribution, top_items, priority_counts, avg_score, total_count}
+  - metrics.custom.top_item_count      # count of items in top_items list
+  - metrics.custom.avg_score           # same as analytics.avg_score
+
+analytics_output_shape:
+  score_distribution: dict[string, int]  # e.g. {"0.0-0.2": 2, "0.2-0.4": 5, ...}
+  top_items:          list[dict]          # top-N items sorted by score descending
+  priority_counts:    dict[string, int]   # {"high": N, "medium": N, "low": N}
+  avg_score:          float
+  total_count:        int
+
+tools_used: []  # pure computation
+
+capabilities:
+  - Works with or without scored_items (graceful fallback to raw items)
+  - Configurable top-N via constraints.limit
+  - Domain-agnostic: reads standardized keys regardless of what items represent
+
+is_reusable: true
+used_in_workflows:
+  - lead_gen
+  - supply_chain_analysis  # future example

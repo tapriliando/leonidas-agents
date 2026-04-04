@@ -1,0 +1,37 @@
+agent_id: summarize_node
+type: node
+department: analytics
+file: backend/app/agents/analytics/summarize_node.py
+
+description: >
+  Generic LLM-based summarizer for any list of structured items. Reads workflow_data["items"],
+  injects workflow_type and goal into the prompt as context, and writes a structured
+  summary dict to workflow_data["summary"]. Sets metrics.quality_score from the LLM's
+  reported confidence value so quality_gate_router can evaluate it.
+
+reads_from_state:
+  - artifacts.workflow_data.items  # list of dicts from fetch_node or scraper_agent
+  - workflow_type                  # LLM prompt context — never branched on in code
+  - goal                           # LLM prompt context
+  - context.domain_context         # optional additional background from memory
+
+writes_to_state:
+  - artifacts.workflow_data.summary  # {overview, key_findings, confidence}
+  - metrics.quality_score            # float from summary["confidence"]
+  - metrics.confidence               # same value, explicit field
+  - errors                           # appended on LLM or parse failure
+
+llm_output_schema:
+  overview: string
+  key_findings: list[string]
+  confidence: float (0.0–1.0)
+
+capabilities:
+  - Workflow-agnostic LLM summarization
+  - Quality scoring via confidence field
+  - Graceful fallback on LLM failure (low-confidence placeholder summary)
+
+is_reusable: true
+used_in_workflows:
+  - complaint_analysis
+  - supply_chain_analysis  # future example

@@ -1,0 +1,39 @@
+# Skill registry template — a skill is a composed capability (agent + tools).
+#
+# Skills are higher-level than agents. One skill may use multiple agents and tools.
+# They are the "product features" your clients see, not the internal nodes.
+#
+# Example:
+#   Skill: "supplier risk assessment"
+#   Uses:  fetch_suppliers_node + enrich_suppliers_node + score_risk_node
+#   Tools: mcp.gmaps_places_search + mcp.rag_query + mcp.web_search
+
+skill_id: <snake_case_name>          # e.g. supplier_risk_assessment
+name: "<Human Readable Name>"
+version: "1.0.0"
+category: <category>                 # research | analytics | outreach | generation | reporting
+
+purpose: >
+  What business capability does this skill provide?
+  How does a non-technical user describe what they want?
+
+# Which workflow(s) this skill contributes to
+workflow_types:
+  - <workflow_type>
+
+# Required agents (in execution order)
+agents:
+  - <agent_id>
+  - <agent_id>
+
+# Required tools (via MCP)
+tools:
+  - mcp.<tool_id>
+
+# State fields this skill ultimately produces
+output_fields:
+  artifacts.workflow_data:
+    - <key>: <description>
+
+# Quality threshold (used by conditional edges to decide retry vs continue)
+quality_threshold: 0.75              # minimum quality_score to consider this skill successful

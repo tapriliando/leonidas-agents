@@ -1,0 +1,60 @@
+workflow_type: research_intelligence
+name: "Research Intelligence Workflow"
+version: "1.0.0"
+department: research
+
+purpose: >
+  Searches the web for information on any topic, synthesizes findings using an LLM,
+  generates actionable recommendations, and formats a structured research report.
+  Used for trend analysis, competitor research, market intelligence, and any
+  informational query that requires real-time internet data.
+
+steps_description: >
+  1. Search the web using mcp.web_search (Tavily or DuckDuckGo fallback)
+  2. Synthesize search results into a structured summary with key findings
+  3. Generate actionable recommendations based on the research summary
+  4. Format a human-readable markdown report
+  5. Persist the run and artifacts to Supabase
+
+output_description: >
+  A structured report containing: synthesis overview, key findings, caveats,
+  prioritized recommendations, and source references. Saved as artifacts.report
+  (markdown) and as a workflow_artifacts row in Supabase.
+
+example_queries:
+  - "what trending news is good for TikTok content?"
+  - "research the latest AI model releases this week"
+  - "find competitor pricing strategies in the SaaS industry"
+  - "what are the best practices for cold email outreach in 2025?"
+  - "research halal food trends in Southeast Asia"
+
+agents_used:
+  - research_node
+  - suggest_node
+  - report_node
+  - persist_node
+
+tools_used:
+  - mcp.web_search
+
+# ---- DEVELOPER ----
+nodes:
+  - name: research
+    node_file: backend/app/agents/research/research_node.py
+  - name: suggest
+    node_file: backend/app/agents/analytics/suggest_node.py
+  - name: report
+    node_file: backend/app/agents/system/report_node.py
+  - name: persist
+    node_file: backend/app/agents/system/persist_node.py
+
+graph_file: backend/app/graph/workflows/research_graph.py
+
+routing:
+  - after: research
+    router: retry_router
+    outcomes: {continue: suggest, retry: research, fail: END}
+  - after: suggest
+    edge: report
+  - after: report
+    edge: persist

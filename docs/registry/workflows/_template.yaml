@@ -1,0 +1,67 @@
+# ============================================================
+# WORKFLOW REGISTRY TEMPLATE
+# Copy this file, rename it to <workflow_type>.yaml, fill it in.
+# Fields marked [YOU] = fill this in.
+# Fields marked [DEV] = leave blank, the developer fills these.
+# ============================================================
+
+# [YOU] Unique ID for this workflow. Lowercase with underscores.
+# Example: research_intelligence | hr_recruitment | supply_chain
+workflow_type:
+
+# [YOU] Human-readable name.
+# Example: "Research Intelligence Workflow"
+name:
+
+# [YOU] Leave as 1.0.0 for new workflows.
+version: "1.0.0"
+
+# [YOU] Which department runs this workflow?
+# Choose one: analytics | content | distribution | research | operations
+department:
+
+# [YOU] What business problem does this solve?
+# Who uses it and what do they get back?
+# The intent agent reads this to classify user queries into this workflow.
+purpose: >
+
+# [YOU] Describe the steps in plain English.
+# You don't need to use technical node names — just describe what happens.
+# The developer translates this into actual LangGraph nodes.
+# Example:
+#   1. Understand what the user is asking for
+#   2. Search the web and social media for relevant news
+#   3. Summarize the findings into a brief
+#   4. Run expert analysis on the summary
+#   5. Produce a final report
+steps_description: >
+
+# [YOU] What does the final output look like?
+# Describe it in plain English — what does the user receive?
+output_description: >
+
+# [YOU] Give 2-3 example user messages that should trigger this workflow.
+example_queries:
+  - ""
+  - ""
+
+# [YOU] List the agent IDs that participate in this workflow.
+# Copy the agent_id values from docs/registry/agents/*.yaml
+agents_used:
+  -
+
+# [YOU] List the tool IDs this workflow needs.
+# Copy the tool_id values from docs/registry/tools/*.yaml
+tools_used:
+  -
+
+# ---- DEVELOPER FILLS BELOW (leave blank when submitting) ------------------
+
+# [DEV] Formal node list with state writes (for graph implementation)
+nodes: []
+
+# [DEV] Conditional routing map
+routing: []
+
+# [DEV] Graph file location
+graph_file: backend/app/graph/workflows/<workflow_type>.py

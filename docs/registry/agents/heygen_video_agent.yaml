@@ -1,0 +1,30 @@
+agent_id: heygen_video_agent
+type: node
+department: content
+file: backend/app/agents/content_generation/heygen_video_agent.py
+
+description: >
+  Generic HeyGen Video Agent caller. Resolves a text prompt from workflow_data
+  (content_prompt, then summary, then user_query), calls MCP, and writes
+  workflow_data.content_generation for report_node.
+
+reads_from_state:
+  - artifacts.workflow_data.content_prompt
+  - artifacts.workflow_data.summary
+  - user_query
+  - goal
+  - constraints.filters.video_prompt   # exact override
+  - constraints.filters.video_prefix   # prepended to resolved prompt
+  - run_id
+
+writes_to_state:
+  - artifacts.workflow_data.content_generation  # { provider, prompt_used, response }
+  - metrics.custom.heygen_status
+  - errors
+
+tools_used:
+  - mcp.heygen_video_agent_generate
+
+is_reusable: true
+used_in_workflows:
+  - content_generation

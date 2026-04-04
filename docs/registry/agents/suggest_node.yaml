@@ -1,0 +1,34 @@
+agent_id: suggest_node
+type: node
+department: analytics
+file: backend/app/agents/analytics/suggest_node.py
+
+description: >
+  Generic LLM-based recommendation generator. Reads workflow_data["summary"], injects
+  workflow_type and goal into the LLM prompt, and produces a list of actionable
+  recommendations with priorities and rationales. Contains zero domain knowledge.
+
+reads_from_state:
+  - artifacts.workflow_data.summary  # structured summary from summarize_node
+  - workflow_type                    # LLM prompt context only
+  - goal                             # LLM prompt context only
+  - constraints.filters              # passed to LLM for scoping
+  - constraints.limit                # passed to LLM as context
+
+writes_to_state:
+  - artifacts.workflow_data.suggestions  # list of {action, priority, rationale}
+  - errors                               # appended on LLM or parse failure
+
+llm_output_schema:
+  - action: string       # imperative verb phrase
+  - priority: string     # "high" | "medium" | "low"
+  - rationale: string    # one-sentence justification
+
+capabilities:
+  - Domain-free recommendation generation via prompt context injection
+  - Graceful fallback on LLM failure (placeholder "review manually" suggestion)
+
+is_reusable: true
+used_in_workflows:
+  - complaint_analysis
+  - supply_chain_analysis  # future example

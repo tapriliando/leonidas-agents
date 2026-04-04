@@ -1,0 +1,28 @@
+tool_id: mcp.heygen_video_agent_generate
+name: "HeyGen Video Agent generate"
+version: "1.0.0"
+provider: heygen
+
+purpose: >
+  POSTs to HeyGen Video Agent API to start a presenter video from a natural-language
+  prompt. Returns the parsed JSON body from HeyGen (job id, status, etc. — see HeyGen docs).
+
+input_fields:
+  - name: prompt
+    required: true
+    description: >
+      Full natural-language instruction for the video, e.g. "A presenter explaining
+      our product launch in 30 seconds".
+
+output_fields:
+  - name: response
+    description: Parsed JSON from HeyGen API (shape depends on API version).
+
+used_by_agents:
+  - heygen_video_agent
+
+auth:
+  method: api_key_header
+  env_var: HEYGEN_API_KEY
+
+handler_file: mcp_server/tools/heygen_video_agent.py

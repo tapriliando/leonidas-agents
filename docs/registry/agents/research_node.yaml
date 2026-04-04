@@ -1,0 +1,48 @@
+agent_id: research_node
+type: node
+department: research
+file: backend/app/agents/research/research_node.py
+
+description: >
+  Combined web search + LLM synthesis node for research workflows. Calls mcp.web_search
+  to fetch real-time results, then synthesizes them into a structured summary with key
+  findings and confidence score. Writes both "items" (raw results) and "summary"
+  (synthesis) to workflow_data so downstream nodes (suggest_node, report_node) work
+  without modification.
+
+reads_from_state:
+  - user_query                          # used as search query if no explicit filter
+  - goal                                # injected into LLM synthesis prompt as context
+  - constraints.filters.query           # explicit search query override
+  - constraints.filters.max_results     # how many results to fetch (max 8)
+  - constraints.limit                   # fallback for max_results
+  - context.domain_context             # injected into synthesis prompt
+  - run_id                             # attached to MCP calls for tracing
+
+writes_to_state:
+  - artifacts.workflow_data.items       # list of raw web result dicts {title, url, content, score}
+  - artifacts.workflow_data.summary     # {overview, key_findings, caveats, confidence}
+  - metrics.item_count                  # number of search results
+  - metrics.quality_score               # from summary["confidence"]
+  - metrics.confidence                  # same value
+  - iteration_count                     # incremented by 1 on empty search
+  - errors                              # appended on MCP or LLM failure
+
+tools_used:
+  - mcp.web_search  # Tavily (with key) or DuckDuckGo (fallback, no key needed)
+
+llm_synthesis_output_schema:
+  overview:     string    # 3-5 sentence synthesis
+  key_findings: list[string]
+  caveats:      list[string]
+  confidence:   float     # 0.0–1.0
+
+capabilities:
+  - Real-time web search via MCP (no hardcoded API calls in node code)
+  - Tavily auto-detected by MCP server; DuckDuckGo fallback requires no key
+  - Retry-friendly: increments iteration_count on empty search results
+  - Graceful LLM fallback: uses Tavily direct answer or item count on synthesis failure
+
+is_reusable: true
+used_in_workflows:
+  - research_intelligence

@@ -1,0 +1,37 @@
+# Registry entry for intent_node — the universal first node in every workflow.
+
+agent_id: intent_node
+name: "Intent Parser Node"
+version: "1.0.0"
+department: shared                    # used by ALL workflows
+workflow_types:
+  - "*"                               # wildcard — this node runs for every workflow
+
+purpose: >
+  Parses user_query into structured goal, workflow_type, department, and
+  constraints. This is always the first node in every graph. Its output
+  determines which workflow branch and department graph runs next.
+
+state_reads:
+  - user_query
+state_writes:
+  - goal
+  - workflow_type
+  - department
+  - constraints
+
+workflow_data_writes: []              # intent_node does not touch artifacts
+
+tools:
+  - mcp.llm_structured_output        # LLM call returning JSON (added in Phase 3)
+
+routing_keys:
+  supply_chain: "route_supply_chain"
+  lead_gen: "route_lead_gen"
+  marketing: "route_marketing"
+  agriculture: "route_agriculture"
+  unknown: "fail"
+
+notes: >
+  Adding a new workflow type: just handle the new string in the routing
+  condition in graph/conditions.py. No change to this agent required.

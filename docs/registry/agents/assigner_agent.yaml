@@ -1,0 +1,39 @@
+agent_id: assigner_agent
+type: node
+department: distribution
+file: backend/app/agents/distribution/assigner_agent.py
+
+description: >
+  Generic LLM-based scorer and prioritizer for any list of enriched items.
+  Reads workflow_data["enriched_items"], injects workflow_type and goal into the
+  LLM prompt, and produces scored/prioritized items. Sets metrics.quality_score
+  to the average score so scored_items_router can evaluate quality.
+
+reads_from_state:
+  - artifacts.workflow_data.enriched_items  # from enrichment_agent
+  - workflow_type                           # LLM prompt context — never branched on
+  - goal                                    # LLM prompt context
+  - constraints.filters.quality_threshold   # scoring bar (default 0.6)
+  - context.domain_context                  # optional scoring criteria from memory
+
+writes_to_state:
+  - artifacts.workflow_data.scored_items  # enriched items + score + priority + score_reason
+  - artifacts.workflow_data.item_scores   # {item_id: float} score lookup dict
+  - metrics.quality_score                 # average score across all items
+  - errors                               # appended on LLM or parse failure
+
+llm_output_schema:
+  - id:       string   # same as input item id
+  - score:    float    # 0.0–1.0
+  - priority: string   # "high" | "medium" | "low"
+  - reason:   string   # one-sentence justification
+
+capabilities:
+  - Domain-agnostic scoring via workflow_type + goal prompt context
+  - Fallback on LLM failure (score=0.5, priority="medium")
+  - Feeds metrics.quality_score for scored_items_router evaluation
+
+is_reusable: true
+used_in_workflows:
+  - lead_gen
+  - talent_pipeline  # future example

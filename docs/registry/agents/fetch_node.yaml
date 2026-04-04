@@ -1,0 +1,34 @@
+agent_id: fetch_node
+type: node
+department: analytics
+file: backend/app/agents/analytics/fetch_node.py
+
+description: >
+  Generic Supabase data fetcher for any analytics workflow. Queries a table determined
+  by constraints.filters.table (falling back to workflow_type) and writes all retrieved
+  rows as workflow_data["items"] for downstream nodes to consume.
+
+reads_from_state:
+  - workflow_type       # used as fallback table name
+  - constraints.filters # passed as equality filters; "table" key overrides the target table
+  - constraints.limit   # max rows to fetch
+  - run_id              # attached to MCP call for tracing
+
+writes_to_state:
+  - artifacts.workflow_data.items  # list of raw row dicts
+  - metrics.item_count             # integer row count
+  - iteration_count                # incremented by 1 on empty result (triggers retry_router)
+  - errors                         # appended on MCP failure or empty result
+
+tools_used:
+  - mcp.supabase_query
+
+capabilities:
+  - Generic table selection via constraint configuration
+  - Equality filter pass-through
+  - Retry-friendly: increments iteration_count rather than raising on empty result
+
+is_reusable: true
+used_in_workflows:
+  - complaint_analysis
+  - supply_chain_analysis  # future example
