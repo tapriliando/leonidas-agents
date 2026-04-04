@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AI I-Bridge — project scaffold (Phase 0)
 
 This folder matches the agreed layout: `backend/`, `mcp-server/`, `docs/`, `docker-compose.yml`, `pyproject.toml`.
@@ -16,3 +17,6 @@ Run tests:
 ```bash
 pytest
 ```
+=======
+# agnostic_multi-agent
+>>>>>>> 338771e11b1ae2edd8bc9b0d694029fa252cf6e6
