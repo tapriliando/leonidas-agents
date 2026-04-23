@@ -101,20 +101,3 @@ Server sends `connect.challenge` with a nonce. Client responds:
 
 Server returns `hello` in a `res` frame. Runtime events include `tick`, `heartbeat`, and `run.complete`.
 
-## Evaluation and Thesis Hooks
-
-- Metrics stream: `var/metrics.jsonl`
-- Benchmark definitions: `backend/app/evaluation/benchmarks.py`
-- Evaluation guide: [docs/thesis-evaluation.md](docs/thesis-evaluation.md)
-
-## Suggested GitHub About
-
-**About**  
-OpenClaw-inspired, LangGraph-powered, Markdown-first multi-agent starter for building extensible agent apps fast.
-
-**Website**  
-Add your thesis/project site URL here.
-
-## Suggested Repository Tags
-
-`multi-agent` `langgraph` `mcp` `fastapi` `python` `agent-framework` `ai-agents` `orchestration` `open-source` `developer-tools`
