@@ -4,34 +4,64 @@ Version: 0.1.0
 Summary: AI I-Bridge — multi-agent LangGraph + MCP (Phase 0 scaffold)
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
-Requires-Dist: langgraph>=0.2.0
+Requires-Dist: langgraph>=1.1.0
 Requires-Dist: langchain-core>=0.3.0
 Requires-Dist: langchain-openai>=0.2.0
 Requires-Dist: pydantic>=2.0
+Requires-Dist: pyyaml>=6.0
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: ruff>=0.6; extra == "dev"
 Provides-Extra: api
 Requires-Dist: fastapi>=0.115; extra == "api"
 Requires-Dist: uvicorn[standard]>=0.30; extra == "api"
+Requires-Dist: redis[hiredis]>=5.0; extra == "api"
+Requires-Dist: supabase>=2.0; extra == "api"
+Requires-Dist: python-dotenv>=1.0; extra == "api"
+Provides-Extra: checkpoint-postgres
+Requires-Dist: langgraph-checkpoint-postgres>=3.0; extra == "checkpoint-postgres"
 Provides-Extra: mcp
 Requires-Dist: httpx>=0.27; extra == "mcp"
 
-# AI I-Bridge — project scaffold (Phase 0)
+# Leonidas Agents — Markdown-first multi-agent starter
 
-This folder matches the agreed layout: `backend/`, `mcp-server/`, `docs/`, `docker-compose.yml`, `pyproject.toml`.
+Python reference stack: **LangGraph** orchestration, **MCP** tool gateway, optional **Redis** cache and **Supabase** persistence. Touchpoint **WebSocket gateway** and **heartbeat** patterns are OpenClaw-inspired; **novelty** for thesis/contributors is Markdown-native agent definitions and evaluation hooks.
 
-- **Phase 1** implements `backend/app/state.py` (`AgentState`).
-- **Docs:** see `docs/` (eight markdown files).
-
-Install (from `project/`):
+## Quick start
 
 ```bash
-pip install -e ".[dev]"
-```
-
-Run tests:
-
-```bash
+cd leonidas-agents
+pip install -e ".[api,dev]"
+python backend/cli.py onboard
+python backend/cli.py doctor
+python backend/cli.py validate
 pytest
 ```
+
+- API: `uvicorn app.api.main:app --app-dir backend --reload` (or set `PYTHONPATH=backend`).
+- MCP: `uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp`
+- Redis (optional): `docker compose up -d`
+
+## Add an agent (Markdown only)
+
+See [docs/add-agent.md](docs/add-agent.md). Validate with `python backend/cli.py validate`.
+
+## Gateway (WebSocket)
+
+Connect to `ws://<host>/gateway/ws`. Server sends `connect.challenge` with a `nonce`; client must send:
+
+```json
+{"type":"req","id":"1","method":"connect","params":{"nonce":"<same nonce>"}}
+```
+
+Server responds with `hello` in the `res` payload. Events: `tick` (transport), `heartbeat` (agent cadence), `run.complete`.
+
+## Evaluation
+
+See [docs/thesis-evaluation.md](docs/thesis-evaluation.md) and `var/metrics.jsonl`.
+
+## Layout
+
+- `backend/app/` — FastAPI app, LangGraph meta-graph, agents, gateway, evaluation
+- `mcp_server/` — tool gateway
+- `docs/registry/` — YAML + Markdown registries (`agents/*.md` supported)

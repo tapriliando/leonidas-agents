@@ -4,6 +4,7 @@ FastAPI entrypoint: middleware, routers, lifespan (graph + Redis + optional Post
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -15,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.cache.redis_cache import close_redis, init_redis
 from app.checkpointer import resolve_postgres_dsn
+from app.gateway.hub import GatewayHub
 from app.graph.base_graph import build_meta_graph
 from app.middleware import RequestContextMiddleware
 
@@ -31,6 +33,10 @@ def _load_project_env() -> None:
 async def lifespan(app: FastAPI):
     _load_project_env()
     await init_redis(os.getenv("REDIS_URL"))
+
+    hub = GatewayHub()
+    app.state.gateway_hub = hub
+    bg_tasks: list[asyncio.Task] = []
 
     try:
         db_url = resolve_postgres_dsn()
@@ -50,6 +56,10 @@ async def lifespan(app: FastAPI):
             async with AsyncPostgresSaver.from_conn_string(db_url) as cp:
                 await cp.setup()
                 app.state.graph = build_meta_graph(cp)
+                bg_tasks = [
+                    asyncio.create_task(hub.run_tick_loop()),
+                    asyncio.create_task(hub.run_agent_heartbeat_loop()),
+                ]
                 yield
         else:
             from app.checkpointer import get_memory_checkpointer
@@ -57,8 +67,20 @@ async def lifespan(app: FastAPI):
             logger.info("Using MemorySaver checkpointer (no Postgres DSN or forced memory)")
             cp = get_memory_checkpointer()
             app.state.graph = build_meta_graph(cp)
+            bg_tasks = [
+                asyncio.create_task(hub.run_tick_loop()),
+                asyncio.create_task(hub.run_agent_heartbeat_loop()),
+            ]
             yield
     finally:
+        for t in bg_tasks:
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
         await close_redis()
 
 
@@ -78,9 +100,11 @@ def create_app() -> FastAPI:
     )
 
     from app.api import routes, workflows
+    from app.gateway.ws_routes import router as gateway_ws_router
 
     app.include_router(routes.router)
     app.include_router(workflows.router)
+    app.include_router(gateway_ws_router)
     return app
 
 

@@ -9,10 +9,17 @@ USAGE (from project root):
   # Interactive REPL mode
   python backend/cli.py
 
+  # Contributor / ops commands (no graph run)
+  python backend/cli.py onboard
+  python backend/cli.py doctor
+  python backend/cli.py agents
+  python backend/cli.py validate
+  python backend/cli.py quickstart
+
 PREREQUISITES:
   1. Fill in .env.backend  (OPENAI_API_KEY required; others optional)
   2. Start the MCP server in another terminal:
-       cd d:/Inway/mas/project
+       cd <repo-root>/leonidas-agents
        uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp
 
 WHAT RUNS WITHOUT SUPABASE:
@@ -40,6 +47,7 @@ HUMAN APPROVAL (Phase 6):
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import os
@@ -48,6 +56,8 @@ import textwrap
 import time
 import uuid
 from pathlib import Path
+import urllib.error
+import urllib.request
 
 
 # ── Env loader ──────────────────────────────────────────────────────────────
@@ -91,6 +101,27 @@ def _setup_env() -> None:
             print(f"   • {m}")
         print("\n   Edit .env.backend and fill in the missing values.\n")
         sys.exit(1)
+
+
+def _upsert_env_var(path: Path, key: str, value: str) -> None:
+    """
+    Insert or update a KEY=value entry in a .env-like file.
+
+    Keeps existing comments/order where possible, appends missing keys.
+    """
+    lines: list[str] = []
+    if path.exists():
+        lines = path.read_text(encoding="utf-8").splitlines()
+    updated = False
+    prefix = f"{key}="
+    for i, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[i] = f"{key}={value}"
+            updated = True
+            break
+    if not updated:
+        lines.append(f"{key}={value}")
+    path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
 
 # ── Pretty printer ──────────────────────────────────────────────────────────
@@ -256,17 +287,171 @@ async def _repl() -> None:
         await _run_query(query)
 
 
+# ── Contributor commands ────────────────────────────────────────────────────
+
+
+def _cmd_onboard(_args: argparse.Namespace) -> None:
+    root = Path(__file__).resolve().parent.parent
+    env = root / ".env.backend"
+    example = root / ".env.backend.example"
+    if not env.exists():
+        text = (
+            example.read_text(encoding="utf-8")
+            if example.exists()
+            else "OPENAI_API_KEY=\nMCP_SERVER_URL=http://localhost:8001\nREDIS_URL=\n"
+        )
+        env.write_text(text, encoding="utf-8")
+        print(f"Created {env}")
+    else:
+        print(".env.backend already exists.")
+
+    key_from_flag = (_args.openai_key or "").strip()
+    if key_from_flag:
+        _upsert_env_var(env, "OPENAI_API_KEY", key_from_flag)
+        print("Saved OPENAI_API_KEY from --openai-key.")
+    elif not _args.non_interactive:
+        current = ""
+        _load_env(str(env))
+        current = os.environ.get("OPENAI_API_KEY", "")
+        if not current:
+            print("\nOPENAI_API_KEY is required for LLM calls.")
+            entered = input("Paste OPENAI_API_KEY now (or press Enter to skip): ").strip()
+            if entered:
+                _upsert_env_var(env, "OPENAI_API_KEY", entered)
+                print("Saved OPENAI_API_KEY.")
+
+    # Keep sensible defaults for first-time runs.
+    _upsert_env_var(env, "MCP_SERVER_URL", os.getenv("MCP_SERVER_URL", "http://localhost:8001"))
+    print(
+        "Next: start MCP (`uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp`) "
+        "then run `python backend/cli.py doctor`."
+    )
+
+
+def _cmd_doctor(_args: argparse.Namespace) -> None:
+    root = Path(__file__).resolve().parent.parent
+    _load_env(str(root / ".env.backend"))
+    _load_env(str(root / ".env.mcp"))
+    print("Leonidas doctor\n")
+    key = os.environ.get("OPENAI_API_KEY", "")
+    print("  OPENAI_API_KEY:", "set" if key and not key.startswith("your-") else "MISSING")
+    mcp = os.environ.get("MCP_SERVER_URL", "http://localhost:8001").rstrip("/")
+    health = f"{mcp}/health"
+    try:
+        urllib.request.urlopen(health, timeout=3).read()
+        print(f"  MCP health ({health}): OK")
+    except (urllib.error.URLError, OSError) as exc:
+        print(f"  MCP health ({health}): FAIL ({exc})")
+    print("\nDone.")
+
+
+def _cmd_quickstart(_args: argparse.Namespace) -> None:
+    """
+    Guided under-10-minute onboarding:
+      1) ensure .env.backend exists (+ optional key)
+      2) validate markdown agents
+      3) run doctor checks
+      4) print exact next command to run first query
+    """
+    print("Leonidas quickstart (target: under 10 minutes)\n")
+    _cmd_onboard(_args)
+    print()
+    _cmd_validate(_args)
+    print()
+    _cmd_doctor(_args)
+    print(
+        "\nReady. Run your first task:\n"
+        '  python backend/cli.py "Explain LangGraph in 3 bullets."\n'
+        "Or start API:\n"
+        "  uvicorn app.api.main:app --app-dir backend --reload\n"
+    )
+
+
+def _cmd_agents(_args: argparse.Namespace) -> None:
+    _ensure_import_paths()
+    from app.registry import AGENT_REGISTRY, AGENT_DEFINITIONS
+
+    print("Registered agents:\n")
+    for aid in sorted(AGENT_REGISTRY.keys()):
+        row = AGENT_REGISTRY[aid]
+        tag = "markdown" if aid in AGENT_DEFINITIONS else "yaml"
+        print(f"  [{tag}] {aid}: {row.get('purpose', '')[:120]}")
+    print(f"\nTotal: {len(AGENT_REGISTRY)} ({len(AGENT_DEFINITIONS)} from Markdown)")
+
+
+def _cmd_validate(_args: argparse.Namespace) -> None:
+    _ensure_import_paths()
+    from app.registry import agents_markdown_dir, refresh_registry
+    from app.registry_markdown import validate_all_markdown_agents
+
+    errs = validate_all_markdown_agents(agents_markdown_dir())
+    if errs:
+        print("Validation FAILED:\n")
+        for e in errs:
+            print(f"  - {e}")
+        sys.exit(1)
+    refresh_registry()
+    print("All Markdown agent files are valid.")
+
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Leonidas multi-agent CLI")
+    sub = p.add_subparsers(dest="command")
+
+    onboard = sub.add_parser("onboard", help="Create/prepare .env.backend for first run")
+    onboard.add_argument(
+        "--openai-key",
+        default="",
+        help="Set OPENAI_API_KEY in .env.backend non-interactively",
+    )
+    onboard.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt for input",
+    )
+    sub.add_parser("doctor", help="Check env and MCP reachability")
+    sub.add_parser("agents", help="List registered agents (YAML + Markdown)")
+    sub.add_parser("validate", help="Validate Markdown agent definitions")
+    quickstart = sub.add_parser("quickstart", help="Run full first-time setup checks")
+    quickstart.add_argument(
+        "--openai-key",
+        default="",
+        help="Set OPENAI_API_KEY in .env.backend during quickstart",
+    )
+    quickstart.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt for input",
+    )
+
+    return p
+
+
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 def main() -> None:
+    argv = sys.argv[1:]
+    if argv and argv[0] in ("onboard", "doctor", "agents", "validate", "quickstart"):
+        parser = _build_arg_parser()
+        args = parser.parse_args(argv)
+        if args.command == "onboard":
+            _cmd_onboard(args)
+        elif args.command == "doctor":
+            _cmd_doctor(args)
+        elif args.command == "agents":
+            _cmd_agents(args)
+        elif args.command == "validate":
+            _cmd_validate(args)
+        elif args.command == "quickstart":
+            _cmd_quickstart(args)
+        return
+
     _setup_env()
 
-    if len(sys.argv) > 1:
-        # Single query from command line args
-        query = " ".join(sys.argv[1:])
+    if argv:
+        query = " ".join(argv)
         asyncio.run(_run_query(query))
     else:
-        # Interactive REPL
         asyncio.run(_repl())
 
 

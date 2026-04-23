@@ -59,7 +59,7 @@ async def direct_answer_node(state: "AgentState") -> dict[str, Any]:
     if domain_context:
         context_parts.append(f"Domain context:\n{json.dumps(domain_context, ensure_ascii=False)}")
     if past_summaries:
-        context_parts.append(f"Recent history:\n" + "\n".join(str(s) for s in past_summaries[:3]))
+        context_parts.append("Recent history:\n" + "\n".join(str(s) for s in past_summaries[:3]))
 
     context_str = "\n\n".join(context_parts) if context_parts else "(none)"
 

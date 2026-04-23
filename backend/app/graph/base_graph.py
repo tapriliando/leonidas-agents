@@ -83,6 +83,7 @@ def _init_workflow_subgraphs() -> dict:
 
     from app.graph.workflows.complaint_graph import build_complaint_graph
     from app.graph.workflows.lead_graph import build_lead_graph
+    from app.graph.workflows.markdown_chain_graph import build_markdown_chain_graph
     from app.graph.workflows.research_graph import build_research_graph
     from app.graph.workflows.content_generation_graph import build_content_generation_graph
 
@@ -91,6 +92,7 @@ def _init_workflow_subgraphs() -> dict:
         "lead_gen":              build_lead_graph,
         "research_intelligence": build_research_graph,
         "content_generation":    build_content_generation_graph,
+        "markdown_chain":        build_markdown_chain_graph,
         # future workflows: one line each — no other changes needed
     }
     return WORKFLOW_SUBGRAPHS

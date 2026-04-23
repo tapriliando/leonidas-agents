@@ -1,0 +1,4 @@
+workflow_type: markdown_chain
+purpose: "Declarative chain of Markdown-defined agents (generic starter workflow)."
+agent_steps:
+  - research_assistant_md

@@ -23,7 +23,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request.state.request_id = rid
         try:
             response = await call_next(request)
-        except Exception as exc:
+        except Exception:
             logger.exception("unhandled_error request_id=%s path=%s", rid, request.url.path)
             return JSONResponse(
                 status_code=500,
