@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="assets/leonidas-agent-banner.png" alt="Leonidas Agents Banner" />
 </p>
@@ -15,7 +14,7 @@ Core objective: **add new agent capabilities by writing Markdown definitions, no
 This project focuses on:
 - rapid contributor onboarding (install to first run in under 10 minutes),
 - durable architecture foundations (stateful orchestration, gateway, persistence boundaries),
-- thesis-grade reproducibility (metrics and benchmark hooks).
+- optional run metrics for debugging and benchmarking (JSONL export).
 
 ## Why This Project (Moat)
 
@@ -23,7 +22,7 @@ This project focuses on:
 - **Operational pattern ready**: OpenClaw-inspired gateway touchpoints + heartbeat model.
 - **LangGraph-native orchestration**: typed state, composable workflows, resumable execution.
 - **MCP tool boundary**: external integrations are isolated and governable.
-- **Research-friendly instrumentation**: run metrics and benchmark utilities for evaluation.
+- **Optional observability**: append-only run metrics and named benchmark scenarios for smoke tests.
 
 ## Architecture
 
@@ -101,3 +100,6 @@ Server sends `connect.challenge` with a nonce. Client responds:
 
 Server returns `hello` in a `res` frame. Runtime events include `tick`, `heartbeat`, and `run.complete`.
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
