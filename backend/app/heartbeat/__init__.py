@@ -1,5 +1,5 @@
 """
-Heartbeat layer (thesis / OpenClaw cadence).
+Heartbeat layer (OpenClaw-inspired cadence).
 
 - **Transport tick** and **agent heartbeat** broadcasts are implemented on
   `app.gateway.hub.GatewayHub` (`run_tick_loop`, `run_agent_heartbeat_loop`).

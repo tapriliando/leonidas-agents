@@ -1,5 +1,5 @@
 """
-Named benchmark scenarios for thesis evaluation (or CI smoke).
+Named benchmark scenarios for smoke tests or CI.
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 """
-Append-only JSONL metrics for reproducible thesis experiments.
+Append-only JSONL metrics for run history and lightweight observability.
 """
 
 from __future__ import annotations
