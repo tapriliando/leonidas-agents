@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="assets/leonidas-agent-banner.png" alt="Leonidas Agents Icon" width="120" />
-</p>
 
 <p align="center">
   <img src="assets/leonidas-agent-banner.png" alt="Leonidas Agents Banner" />
