@@ -16,7 +16,7 @@ This project focuses on:
 - durable architecture foundations (stateful orchestration, gateway, persistence boundaries),
 - optional run metrics for debugging and benchmarking (JSONL export).
 
-## Why This Project (Moat)
+## Why This Project :
 
 - **Markdown-native extensibility**: contributors add agents via `docs/registry/agents/*.md`.
 - **Operational pattern ready**: OpenClaw-inspired gateway touchpoints + heartbeat model.
