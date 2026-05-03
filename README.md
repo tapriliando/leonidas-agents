@@ -51,17 +51,22 @@ flowchart TD
 
 Detailed guide: [docs/quickstart-10-min.md](docs/quickstart-10-min.md)
 
+**Before you start:** run every command from the **repository root** (the folder that contains `pyproject.toml`, `backend/`, and `mcp_server/`).  
+Use **Python 3.11+** and install extras once:
+
 ### 1) Install dependencies
 
 ```bash
 cd leonidas-agents
-pip install -e ".[api,dev]"
+python -m pip install -e ".[api,dev]"
 ```
 
 ### 2) Start MCP gateway
 
+No `.env.mcp` file is required for a first run. Optional secrets live in `.env.mcp` (copy from [.env.mcp.example](.env.mcp.example)); the server loads it automatically when present.
+
 ```bash
-uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp
+uvicorn mcp_server.main:app --host 127.0.0.1 --port 8001
 ```
 
 ### 3) Run guided onboarding

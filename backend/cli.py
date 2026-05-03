@@ -20,7 +20,7 @@ PREREQUISITES:
   1. Fill in .env.backend  (OPENAI_API_KEY required; others optional)
   2. Start the MCP server in another terminal:
        cd <repo-root>/leonidas-agents
-       uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp
+       uvicorn mcp_server.main:app --host 127.0.0.1 --port 8001
 
 WHAT RUNS WITHOUT SUPABASE:
   intent_node    ✅ LLM only
@@ -62,14 +62,15 @@ import urllib.request
 
 # ── Env loader ──────────────────────────────────────────────────────────────
 
-def _load_env(path: str) -> None:
+def _load_env(path: str, *, quiet_if_missing: bool = False) -> None:
     """
     Minimal .env file parser — no external dependencies needed.
     Skips comments and blank lines. Handles quoted values.
     """
     env_path = Path(path)
     if not env_path.exists():
-        print(f"  [warn] .env file not found: {path}")
+        if not quiet_if_missing:
+            print(f"  [warn] .env file not found: {path}")
         return
     with open(env_path) as f:
         for line in f:
@@ -89,7 +90,7 @@ def _setup_env() -> None:
     """Load env files from the project root (backend reads both)."""
     project_root = Path(__file__).resolve().parent.parent
     _load_env(str(project_root / ".env.backend"))
-    _load_env(str(project_root / ".env.mcp"))
+    _load_env(str(project_root / ".env.mcp"), quiet_if_missing=True)
 
     # Validate required vars
     missing = []
@@ -206,6 +207,45 @@ def _print_state_summary(result: dict) -> None:
 
 # ── Graph runner ────────────────────────────────────────────────────────────
 
+
+def _repo_root() -> Path:
+    """Directory containing pyproject.toml (parent of backend/)."""
+    return Path(__file__).resolve().parent.parent
+
+
+def _verify_repo_layout() -> bool:
+    root = _repo_root()
+    if not (root / "pyproject.toml").is_file():
+        print(
+            "\n❌  This repository layout looks incomplete.\n"
+            f"   Expected pyproject.toml at: {root / 'pyproject.toml'}\n\n"
+            "   Use the full project root (folder that contains backend/, "
+            "mcp_server/, pyproject.toml), then retry.\n"
+        )
+        return False
+    return True
+
+
+def _ensure_langgraph_installed() -> bool:
+    try:
+        import langgraph  # noqa: F401
+
+        return True
+    except ImportError:
+        root = _repo_root()
+        exe = sys.executable
+        print(
+            "\n❌  Missing dependency: langgraph\n\n"
+            "   Install project extras from the repo root:\n"
+            f"      cd {root}\n"
+            f'      "{exe}" -m pip install -e ".[api,dev]"'
+            "\n\n"
+            "   Confirm the same interpreter sees langgraph:\n"
+            f'      "{exe}" -c "import langgraph; print(langgraph.__file__)"\n'
+        )
+        return False
+
+
 def _ensure_import_paths() -> None:
     """
     Ensure both `app` (under backend/) and `mcp_server` (repo root) are importable.
@@ -223,6 +263,10 @@ def _ensure_import_paths() -> None:
 
 async def _run_query(query: str) -> None:
     """Build the meta graph and invoke it with the user query."""
+    if not _verify_repo_layout():
+        return
+    if not _ensure_langgraph_installed():
+        return
     # Late import so env is already loaded before importing LangChain / app modules
     _ensure_import_paths()
 
@@ -322,17 +366,36 @@ def _cmd_onboard(_args: argparse.Namespace) -> None:
 
     # Keep sensible defaults for first-time runs.
     _upsert_env_var(env, "MCP_SERVER_URL", os.getenv("MCP_SERVER_URL", "http://localhost:8001"))
+
+    mcp_env = root / ".env.mcp"
+    mcp_example = root / ".env.mcp.example"
+    if not mcp_env.exists() and mcp_example.exists():
+        mcp_env.write_text(mcp_example.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"Created optional {mcp_env} from .env.mcp.example (you can leave keys blank).")
+
     print(
-        "Next: start MCP (`uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp`) "
-        "then run `python backend/cli.py doctor`."
+        "Next: start MCP in another terminal:\n"
+        "     uvicorn mcp_server.main:app --host 127.0.0.1 --port 8001\n"
+        "   (.env.mcp is optional — loaded automatically when present.)\n"
+        "Then run: python backend/cli.py doctor"
     )
 
 
 def _cmd_doctor(_args: argparse.Namespace) -> None:
     root = Path(__file__).resolve().parent.parent
     _load_env(str(root / ".env.backend"))
-    _load_env(str(root / ".env.mcp"))
+    _load_env(str(root / ".env.mcp"), quiet_if_missing=True)
     print("Leonidas doctor\n")
+    print(
+        "  Repo layout:",
+        "OK (pyproject.toml found)" if (root / "pyproject.toml").is_file() else "MISSING pyproject.toml",
+    )
+    try:
+        import langgraph  # noqa: F401
+
+        print("  langgraph: OK")
+    except ImportError:
+        print('  langgraph: MISSING — pip install -e ".[api,dev]" from repo root')
     key = os.environ.get("OPENAI_API_KEY", "")
     print("  OPENAI_API_KEY:", "set" if key and not key.startswith("your-") else "MISSING")
     mcp = os.environ.get("MCP_SERVER_URL", "http://localhost:8001").rstrip("/")
@@ -360,7 +423,7 @@ def _cmd_quickstart(_args: argparse.Namespace) -> None:
     print()
     _cmd_doctor(_args)
     print(
-        "\nReady. Run your first task:\n"
+        "\nReady. Run from repo root:\n"
         '  python backend/cli.py "Explain LangGraph in 3 bullets."\n'
         "Or start API:\n"
         "  uvicorn app.api.main:app --app-dir backend --reload\n"

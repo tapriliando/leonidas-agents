@@ -2,24 +2,34 @@
 
 This guide gets a first-time contributor from install to first successful run quickly.
 
+## 0) Use the correct folder
+
+Your shell should be in the **repository root**: the directory that contains `pyproject.toml`, `backend/`, and `mcp_server/`.
+
+If `python backend/cli.py` works but imports fail, you are usually either in the wrong folder or you skipped the install step.
+
 ## 1) Install
 
 ```bash
 cd leonidas-agents
-pip install -e ".[api,dev]"
+python -m pip install -e ".[api,dev]"
 ```
+
+This installs **LangGraph** and other orchestration deps. If you see `No module named 'langgraph'`, re-run the line above with the **same** Python you use for `python backend/cli.py`.
 
 ## 2) Start MCP tool gateway
 
+You **do not** need a `.env.mcp` file to start the server. Optional API keys go in `.env.mcp` (copy from `.env.mcp.example`); when that file exists it is loaded automatically by `mcp_server` (no `uvicorn --env-file` required).
+
 ```bash
-uvicorn mcp_server.main:app --port 8001 --env-file .env.mcp
+uvicorn mcp_server.main:app --host 127.0.0.1 --port 8001
 ```
 
 Keep this terminal running.
 
 ## 3) Run guided onboarding
 
-In another terminal:
+In another terminal (still from repo root):
 
 ```bash
 python backend/cli.py quickstart
@@ -27,9 +37,10 @@ python backend/cli.py quickstart
 
 What this does:
 - creates/updates `.env.backend`
+- creates optional `.env.mcp` from `.env.mcp.example` if missing
 - prompts for `OPENAI_API_KEY` (unless `--non-interactive`)
 - validates Markdown agent definitions
-- checks MCP health
+- checks MCP health, repo layout, and `langgraph`
 
 ## 4) First task
 
@@ -50,4 +61,3 @@ Then call `POST /run`.
 ```bash
 python backend/cli.py quickstart --openai-key "<YOUR_KEY>" --non-interactive
 ```
-

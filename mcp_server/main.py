@@ -29,15 +29,50 @@ from __future__ import annotations
 
 import importlib
 import os
-import time
 from pathlib import Path
 from typing import Any
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from mcp_server.contracts import ToolCall, ToolResult, ToolListResponse
+
+
+def _load_optional_repo_env_mcp() -> None:
+    """
+    Load `<repo-root>/.env.mcp` without requiring `uvicorn --env-file`.
+
+    Uses python-dotenv when installed; otherwise parses KEY=value lines so MCP
+    starts even without extra packages.
+    """
+    repo_root = Path(__file__).resolve().parents[1]
+    env_path = repo_root / ".env.mcp"
+    if not env_path.is_file():
+        return
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(env_path)
+        return
+    except ImportError:
+        pass
+    try:
+        raw = env_path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and value and value not in ("...", "your-key-here"):
+            os.environ.setdefault(key, value)
+
+
+_load_optional_repo_env_mcp()
 
 # ── App setup ─────────────────────────────────────────────────────────────
 app = FastAPI(
